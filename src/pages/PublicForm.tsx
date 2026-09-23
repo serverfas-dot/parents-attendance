@@ -4,7 +4,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Grade, Student, Parent, FormSettings } from '@/lib/types';
-import schoolLogo from '@/assets/school-logo.png';
 
 export default function PublicForm() {
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -176,10 +175,7 @@ export default function PublicForm() {
       {/* Header */}
       <div className="w-full max-w-2xl mb-6 sm:mb-8">
         <div className="flex flex-col items-center text-center">
-          <img src={schoolLogo} alt="Faafu Atoll School" className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-4" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Parents Attendance
-          </h1>
+          <img src={`${import.meta.env.BASE_URL}png.png`} alt="" className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-4" />
           <p className="text-sm text-slate-500 mt-1.5">{today}</p>
         </div>
       </div>
