@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import schoolLogo from '@/assets/school-logo.png';
 
 export default function AdminLogin() {
   const { signIn } = useAuth();
@@ -53,7 +54,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img src="/png.png" alt="Faafu Atoll School" className="w-16 h-16 object-contain mb-4" />
+          <img src={schoolLogo} alt="Faafu Atoll School" className="w-16 h-16 object-contain mb-4" />
           <h1 className="text-xl font-bold text-white tracking-tight">Parents Attendance</h1>
           <p className="text-sm text-slate-400 mt-1">Admin Dashboard</p>
         </div>
