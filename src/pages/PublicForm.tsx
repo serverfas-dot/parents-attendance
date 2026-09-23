@@ -175,7 +175,7 @@ export default function PublicForm() {
       {/* Header */}
       <div className="w-full max-w-2xl mb-6 sm:mb-8">
         <div className="flex flex-col items-center text-center">
-          <img src={`${import.meta.env.BASE_URL}png.png`} alt="" className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-4" />
+          <img src={`${import.meta.env.BASE_URL}png%20copy.png`} alt="" className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-4" />
           <p className="text-sm text-slate-500 mt-1.5">{today}</p>
         </div>
       </div>

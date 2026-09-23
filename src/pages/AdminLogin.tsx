@@ -53,7 +53,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img src={`${import.meta.env.BASE_URL}png.png`} alt="" className="w-16 h-16 object-contain mb-4" />
+          <img src={`${import.meta.env.BASE_URL}png%20copy.png`} alt="" className="w-16 h-16 object-contain mb-4" />
           <h1 className="text-xl font-bold text-white tracking-tight">Parents Attendance</h1>
           <p className="text-sm text-slate-400 mt-1">Admin Dashboard</p>
         </div>

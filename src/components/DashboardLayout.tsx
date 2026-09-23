@@ -36,7 +36,7 @@ export default function DashboardLayout({ current, onNavigate, children }: Dashb
       {/* Logo */}
       <div className="px-5 py-5 border-b border-slate-700/50">
         <div className="flex items-center gap-3">
-          <img src={`${import.meta.env.BASE_URL}png.png`} alt="" className="w-9 h-9 object-contain flex-shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}png%20copy.png`} alt="" className="w-9 h-9 object-contain flex-shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-white truncate">Parents Attendance</p>
             <p className="text-xs text-slate-400">Admin Dashboard</p>
