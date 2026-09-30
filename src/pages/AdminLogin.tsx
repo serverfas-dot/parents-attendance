@@ -121,7 +121,7 @@ export default function AdminLogin() {
         </div>
 
         <p className="text-center text-xs text-slate-500 mt-6">
-          <a href="/" className="hover:text-blue-400 transition-colors">← Back to attendance form</a>
+          <a href={import.meta.env.BASE_URL} className="hover:text-blue-400 transition-colors">← Back to attendance form</a>
         </p>
       </div>
     </div>
