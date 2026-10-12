@@ -29,10 +29,17 @@ export interface Student {
   grades?: Grade;
 }
 
+export interface Session {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface Attendance {
   id: string;
   student_id: string;
   grade_id: string;
+  session_id: string;
   mother_attended: boolean;
   father_attended: boolean;
   guardian_name: string | null;
@@ -45,12 +52,14 @@ export interface Attendance {
 export interface AttendanceWithDetails extends Attendance {
   student_name: string;
   grade_name: string;
+  session_name: string;
   key_stage_id: string | null;
   key_stage_name: string | null;
 }
 
 export interface FormSettings {
   id: string;
+  session_id: string;
   is_open: boolean;
   open_time: string | null;
   close_time: string | null;

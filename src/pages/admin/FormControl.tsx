@@ -1,12 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Clock, Calendar, ToggleLeft, ToggleRight, Save, AlertCircle,
+  Clock, Calendar, ToggleLeft, ToggleRight, Save, AlertCircle, Plus,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { FormSettings } from '@/lib/types';
+import type { FormSettings, Session } from '@/lib/types';
 
 export default function FormControl() {
   const [settings, setSettings] = useState<FormSettings | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [sessionName, setSessionName] = useState('');
+  const [addingSession, setAddingSession] = useState(false);
+  const [sessionError, setSessionError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
@@ -18,9 +23,15 @@ export default function FormControl() {
   const [closeTime, setCloseTime] = useState('');
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('form_settings').select('*').maybeSingle();
+    const [settingsRes, sessionsRes] = await Promise.all([
+      supabase.from('form_settings').select('*').maybeSingle(),
+      supabase.from('sessions').select('*').order('created_at', { ascending: false }),
+    ]);
+    const data = settingsRes.data;
+    if (sessionsRes.data) setSessions(sessionsRes.data);
     if (data) {
       setSettings(data);
+      setSelectedSessionId(data.session_id);
       setManualOpen(data.is_open);
       setUseSchedule(!data.manual_override && data.open_time !== null);
       if (data.open_time) {
@@ -34,6 +45,26 @@ export default function FormControl() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleAddSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = sessionName.trim();
+    if (!name) return;
+
+    setAddingSession(true);
+    setSessionError('');
+    const { data, error } = await supabase.from('sessions').insert({ name }).select().maybeSingle();
+    setAddingSession(false);
+
+    if (error || !data) {
+      setSessionError('Unable to add this session. Please try again.');
+      return;
+    }
+
+    setSessionName('');
+    setSelectedSessionId(data.id);
+    await load();
+  };
 
   const toLocalInput = (iso: string): string => {
     const d = new Date(iso);
@@ -60,6 +91,7 @@ export default function FormControl() {
       manual_override: !useSchedule,
       open_time: useSchedule && openTime ? new Date(openTime).toISOString() : null,
       close_time: useSchedule && closeTime ? new Date(closeTime).toISOString() : null,
+      session_id: selectedSessionId,
     };
 
     if (settings) {
@@ -100,6 +132,50 @@ export default function FormControl() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Form Control</h1>
         <p className="text-sm text-slate-500 mt-1">Control when the public attendance form is open</p>
+      </div>
+
+      {/* Sessions */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+            <Calendar size={18} className="text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800">Attendance Sessions</h2>
+            <p className="text-xs text-slate-400">Add sessions that parents can select on the public form</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleAddSession} className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={sessionName}
+            onChange={(e) => setSessionName(e.target.value)}
+            placeholder="For example: Term 1 2026"
+            className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+          />
+          <button
+            type="submit"
+            disabled={addingSession || !sessionName.trim()}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            <Plus size={16} />
+            {addingSession ? 'Adding…' : 'Add Session'}
+          </button>
+        </form>
+        {sessionError && <p className="text-sm text-red-600 mt-2">{sessionError}</p>}
+
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-slate-500 mb-1.5">Default session for the form</label>
+          <select
+            value={selectedSessionId}
+            onChange={(e) => setSelectedSessionId(e.target.value)}
+            disabled={sessions.length === 0}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:bg-slate-50 disabled:text-slate-400"
+          >
+            <option value="">Select a session</option>
+            {sessions.map((session) => <option key={session.id} value={session.id}>{session.name}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Current Status */}

@@ -1,11 +1,11 @@
 import { type ReactNode, useState } from 'react';
 import {
   LayoutDashboard, GraduationCap, Users, ClipboardList, Clock, FileText,
-  LogOut, Menu, X,
+  LogOut, Menu, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
-export type AdminPage = 'overview' | 'grades' | 'students' | 'attendance' | 'form-control' | 'reports';
+export type AdminPage = 'overview' | 'grades' | 'students' | 'attendance' | 'form-control' | 'reports' | 'super-admin';
 
 interface DashboardLayoutProps {
   current: AdminPage;
@@ -20,6 +20,7 @@ const navItems: { id: AdminPage; label: string; icon: typeof LayoutDashboard }[]
   { id: 'attendance', label: 'Attendance Records', icon: ClipboardList },
   { id: 'form-control', label: 'Form Control', icon: Clock },
   { id: 'reports', label: 'Reports', icon: FileText },
+  { id: 'super-admin', label: 'Super Admin', icon: ShieldCheck },
 ];
 
 export default function DashboardLayout({ current, onNavigate, children }: DashboardLayoutProps) {

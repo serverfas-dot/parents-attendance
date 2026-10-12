@@ -3,15 +3,17 @@ import {
   CalendarCheck, ChevronDown, Check, Clock, Lock, ShieldCheck, Users, XCircle, Settings,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { Grade, Student, Parent, FormSettings } from '@/lib/types';
+import type { Grade, Student, Parent, FormSettings, Session } from '@/lib/types';
 
 export default function PublicForm() {
   const [grades, setGrades] = useState<Grade[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [allParents, setAllParents] = useState<Parent[]>([]);
   const [formSettings, setFormSettings] = useState<FormSettings | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [selectedSessionId, setSelectedSessionId] = useState('');
   const [selectedGradeId, setSelectedGradeId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [selectedMotherId, setSelectedMotherId] = useState('');
@@ -28,17 +30,25 @@ export default function PublicForm() {
   });
 
   const loadData = useCallback(async () => {
-    const [grRes, stRes, paRes, fsRes] = await Promise.all([
+    const [grRes, stRes, paRes, fsRes, ssRes] = await Promise.all([
       supabase.from('grades').select('*, key_stages(*)').order('name'),
       supabase.from('students').select('*').order('name'),
       supabase.from('parents').select('*'),
       supabase.from('form_settings').select('*').maybeSingle(),
+      supabase.from('sessions').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (grRes.data) setGrades(grRes.data);
     if (stRes.data) setStudents(stRes.data);
     if (paRes.data) setAllParents(paRes.data);
-    if (fsRes.data) setFormSettings(fsRes.data);
+    if (fsRes.data) {
+      setFormSettings(fsRes.data);
+      setSelectedSessionId(fsRes.data.session_id);
+    }
+    if (ssRes.data) {
+      setSessions(ssRes.data);
+      if (!fsRes.data?.session_id && ssRes.data[0]) setSelectedSessionId(ssRes.data[0].id);
+    }
     setLoading(false);
   }, []);
 
@@ -89,8 +99,8 @@ export default function PublicForm() {
     e.preventDefault();
     setError('');
 
-    if (!selectedStudentId || !selectedGradeId) {
-      setError('Please select a grade and student.');
+    if (!selectedSessionId || !selectedStudentId || !selectedGradeId) {
+      setError('Please select a session, grade, and student.');
       return;
     }
 
@@ -124,6 +134,7 @@ export default function PublicForm() {
     setSubmitting(true);
 
     const { error: insertError } = await supabase.from('attendance').insert({
+      session_id: selectedSessionId,
       student_id: selectedStudentId,
       grade_id: selectedGradeId,
       mother_attended: motherAttended,
@@ -138,7 +149,7 @@ export default function PublicForm() {
 
     if (insertError) {
       if (insertError.code === '23505') {
-        setError('Attendance has already been submitted for this student today.');
+        setError('Attendance has already been submitted for this student in this session today.');
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -149,8 +160,8 @@ export default function PublicForm() {
   };
 
   const resetForm = () => {
+    setSelectedSessionId(formSettings?.session_id || sessions[0]?.id || '');
     setSelectedGradeId('');
-    setSelectedStudentId('');
     setSelectedMotherId('');
     setSelectedFatherId('');
     setUseGuardian(false);
@@ -220,6 +231,27 @@ export default function PublicForm() {
             <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 rounded-xl px-4 py-3">
               <CalendarCheck size={18} className="text-blue-600" />
               <span>{today}</span>
+            </div>
+
+            {/* Session */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Session</label>
+              <div className="relative">
+                <select
+                  value={selectedSessionId}
+                  onChange={(e) => { setSelectedSessionId(e.target.value); setError(''); }}
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                >
+                  <option value="">Select a session</option>
+                  {sessions.map((session) => (
+                    <option key={session.id} value={session.id}>{session.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+              {sessions.length === 0 && (
+                <p className="text-xs text-amber-500 mt-1.5">No sessions are available yet.</p>
+              )}
             </div>
 
             {/* Grade */}
