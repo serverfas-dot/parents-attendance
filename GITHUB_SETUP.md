@@ -73,7 +73,7 @@ Your live URL will be:
 
 - Visit `https://YOUR_USERNAME.github.io/parents-attendance/#admin`
 - Username: `admin@parentsattendance.school`
-- Password: `ParentAdmin@2026`
+- Password: use the password currently configured for this Supabase account; passwords are not stored in GitHub.
 
 ## Public Form
 
