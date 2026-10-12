@@ -123,6 +123,7 @@ export default function SuperAdmin() {
       kind: 'manual',
       label: `Manual snapshot — ${new Date().toLocaleString('en-GB')}`,
       payload,
+      created_by: session?.user.id,
     });
     if (saveError) {
       setError('Could not save the backup snapshot.');

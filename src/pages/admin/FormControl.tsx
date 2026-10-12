@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Clock, Calendar, ToggleLeft, ToggleRight, Save, AlertCircle, Plus,
+  Clock, Calendar, ToggleLeft, ToggleRight, Save, AlertCircle, Plus, Pencil, Trash2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { FormSettings, Session } from '@/lib/types';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function FormControl() {
   const [settings, setSettings] = useState<FormSettings | null>(null);
@@ -11,6 +12,12 @@ export default function FormControl() {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [addingSession, setAddingSession] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState('');
+  const [editingSessionName, setEditingSessionName] = useState('');
+  const [savingSession, setSavingSession] = useState(false);
+  const [deleteSessionId, setDeleteSessionId] = useState('');
+  const [deleteSessionName, setDeleteSessionName] = useState('');
+  const [deleteSessionOpen, setDeleteSessionOpen] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -63,6 +70,84 @@ export default function FormControl() {
 
     setSessionName('');
     setSelectedSessionId(data.id);
+    await load();
+  };
+
+  const startEditSession = (session: Session) => {
+    setEditingSessionId(session.id);
+    setEditingSessionName(session.name);
+    setSessionError('');
+  };
+
+  const cancelEditSession = () => {
+    setEditingSessionId('');
+    setEditingSessionName('');
+  };
+
+  const handleEditSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = editingSessionName.trim();
+    if (!editingSessionId || !name) return;
+
+    setSavingSession(true);
+    setSessionError('');
+    const { error } = await supabase.from('sessions').update({ name }).eq('id', editingSessionId);
+    setSavingSession(false);
+    if (error) {
+      setSessionError('Unable to update this session. Please try again.');
+      return;
+    }
+    cancelEditSession();
+    await load();
+  };
+
+  const openDeleteSession = (session: Session) => {
+    setDeleteSessionId(session.id);
+    setDeleteSessionName(session.name);
+    setDeleteSessionOpen(true);
+    setSessionError('');
+  };
+
+  const handleDeleteSession = async () => {
+    if (!deleteSessionId) return;
+    if (sessions.length <= 1) {
+      setSessionError('Keep at least one attendance session.');
+      setDeleteSessionOpen(false);
+      return;
+    }
+
+    const { count: attendanceCount, error: countError } = await supabase
+      .from('attendance')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', deleteSessionId);
+    if (countError || (attendanceCount || 0) > 0) {
+      setSessionError('This session has attendance records and must be kept for history.');
+      setDeleteSessionOpen(false);
+      return;
+    }
+
+    const replacement = sessions.find((session) => session.id !== deleteSessionId);
+    if (selectedSessionId === deleteSessionId && replacement && settings) {
+      const { error: settingsError } = await supabase
+        .from('form_settings')
+        .update({ session_id: replacement.id })
+        .eq('id', settings.id);
+      if (settingsError) {
+        setSessionError('The default session could not be changed.');
+        setDeleteSessionOpen(false);
+        return;
+      }
+      setSelectedSessionId(replacement.id);
+    }
+
+    const { error } = await supabase.from('sessions').delete().eq('id', deleteSessionId);
+    setDeleteSessionOpen(false);
+    if (error) {
+      setSessionError('This session could not be deleted.');
+      return;
+    }
+    setDeleteSessionId('');
+    setDeleteSessionName('');
     await load();
   };
 
@@ -164,6 +249,35 @@ export default function FormControl() {
         </form>
         {sessionError && <p className="text-sm text-red-600 mt-2">{sessionError}</p>}
 
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-medium text-slate-500">Manage sessions</p>
+          {sessions.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-400">No attendance sessions yet.</p>
+          ) : sessions.map((session) => (
+            <div key={session.id} className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5">
+              {editingSessionId === session.id ? (
+                <form onSubmit={handleEditSession} className="flex flex-1 items-center gap-2">
+                  <input
+                    autoFocus
+                    value={editingSessionName}
+                    onChange={(e) => setEditingSessionName(e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                  <button type="submit" disabled={savingSession || !editingSessionName.trim()} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">{savingSession ? 'Saving…' : 'Save'}</button>
+                  <button type="button" onClick={cancelEditSession} className="rounded-lg px-2 py-2 text-xs font-medium text-slate-500 hover:bg-white">Cancel</button>
+                </form>
+              ) : (
+                <>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{session.name}</span>
+                  {selectedSessionId === session.id && <span className="text-xs text-blue-600">Default</span>}
+                  <button type="button" onClick={() => startEditSession(session)} title="Edit session" className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-blue-600"><Pencil size={15} /></button>
+                  <button type="button" onClick={() => openDeleteSession(session)} title="Delete session" className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-red-500"><Trash2 size={15} /></button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
         <div className="mt-4">
           <label className="block text-xs font-medium text-slate-500 mb-1.5">Default session for the form</label>
           <select
@@ -177,6 +291,15 @@ export default function FormControl() {
           </select>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteSessionOpen}
+        title="Delete Attendance Session"
+        message={`Are you sure you want to delete "${deleteSessionName}"? Sessions still used by attendance records cannot be removed.`}
+        onConfirm={handleDeleteSession}
+        onCancel={() => setDeleteSessionOpen(false)}
+        confirmLabel="Delete session"
+      />
 
       {/* Current Status */}
       <div className={`rounded-2xl border p-5 ${currentlyOpen ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
