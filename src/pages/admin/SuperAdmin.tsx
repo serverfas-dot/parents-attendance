@@ -54,7 +54,8 @@ export default function SuperAdmin() {
 
   useEffect(() => {
     const loadBackups = async () => {
-      const [backupResult, scheduleResult] = await Promise.all([
+      try {
+        const [backupResult, scheduleResult] = await Promise.all([
         supabase.from('system_backups').select('id, kind, label, payload, created_at').order('created_at', { ascending: false }),
         supabase.from('backup_settings').select('frequency').eq('id', 1).maybeSingle(),
       ]);
@@ -63,8 +64,10 @@ export default function SuperAdmin() {
       } else {
         setBackups((backupResult.data as BackupRecord[]) || []);
         if (scheduleResult.data?.frequency) setFrequency(scheduleResult.data.frequency as BackupFrequency);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadBackups();
   }, []);

@@ -27,13 +27,16 @@ export default function GradesManager() {
   const [deleteName, setDeleteName] = useState('');
 
   const load = useCallback(async () => {
-    const [ksRes, grRes] = await Promise.all([
+    try {
+      const [ksRes, grRes] = await Promise.all([
       supabase.from('key_stages').select('*').order('name'),
       supabase.from('grades').select('*, key_stages(*)').order('name'),
     ]);
     setKeyStages(ksRes.data || []);
-    setGrades(grRes.data || []);
-    setLoading(false);
+      setGrades(grRes.data || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);

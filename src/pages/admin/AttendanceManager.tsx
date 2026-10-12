@@ -38,7 +38,8 @@ export default function AttendanceManager() {
   const [deleteName, setDeleteName] = useState('');
 
   const load = useCallback(async () => {
-    const [attRes, stRes, grRes, paRes] = await Promise.all([
+    try {
+      const [attRes, stRes, grRes, paRes] = await Promise.all([
       supabase.from('attendance_with_details').select('*').order('attendance_date', { ascending: false }).order('student_name', { ascending: true }),
       supabase.from('students').select('*').order('name'),
       supabase.from('grades').select('*').order('name'),
@@ -47,8 +48,10 @@ export default function AttendanceManager() {
     setRecords(attRes.data || []);
     setStudents(stRes.data || []);
     setGrades(grRes.data || []);
-    setParents(paRes.data || []);
-    setLoading(false);
+      setParents(paRes.data || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);

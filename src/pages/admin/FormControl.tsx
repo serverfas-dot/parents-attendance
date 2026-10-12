@@ -30,7 +30,8 @@ export default function FormControl() {
   const [closeTime, setCloseTime] = useState('');
 
   const load = useCallback(async () => {
-    const [settingsRes, sessionsRes] = await Promise.all([
+    try {
+      const [settingsRes, sessionsRes] = await Promise.all([
       supabase.from('form_settings').select('*').maybeSingle(),
       supabase.from('sessions').select('*').order('created_at', { ascending: false }),
     ]);
@@ -47,8 +48,10 @@ export default function FormControl() {
       if (data.close_time) {
         setCloseTime(toLocalInput(data.close_time));
       }
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);

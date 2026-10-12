@@ -39,15 +39,18 @@ export default function StudentsManager() {
   const [deleteName, setDeleteName] = useState('');
 
   const load = useCallback(async () => {
-    const [grRes, stRes, paRes] = await Promise.all([
+    try {
+      const [grRes, stRes, paRes] = await Promise.all([
       supabase.from('grades').select('*, key_stages(*)').order('name'),
       supabase.from('students').select('*').order('name'),
       supabase.from('parents').select('*'),
     ]);
     setGrades(grRes.data || []);
     setStudents(stRes.data || []);
-    setParents(paRes.data || []);
-    setLoading(false);
+      setParents(paRes.data || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);

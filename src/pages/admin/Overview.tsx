@@ -22,55 +22,54 @@ export default function Overview() {
   const today = new Date().toISOString().split('T')[0];
 
   const load = useCallback(async () => {
-    const [stRes, attRes, grRes, ksRes] = await Promise.all([
-      supabase.from('students').select('*, grades(*, key_stages(*))'),
-      supabase.from('attendance_with_details').select('*').eq('attendance_date', today),
-      supabase.from('grades').select('*, key_stages(*)').order('name'),
-      supabase.from('key_stages').select('*').order('name'),
-    ]);
+    try {
+      const [stRes, attRes, grRes, ksRes] = await Promise.all([
+        supabase.from('students').select('*, grades(*, key_stages(*))'),
+        supabase.from('attendance_with_details').select('*').eq('attendance_date', today),
+        supabase.from('grades').select('*, key_stages(*)').order('name'),
+        supabase.from('key_stages').select('*').order('name'),
+      ]);
 
-    const students: Student[] = stRes.data || [];
-    const attendance: AttendanceWithDetails[] = attRes.data || [];
-    const grades: Grade[] = grRes.data || [];
-    const keyStages: KeyStage[] = ksRes.data || [];
+      const students: Student[] = stRes.data || [];
+      const attendance: AttendanceWithDetails[] = attRes.data || [];
+      const grades: Grade[] = grRes.data || [];
+      const keyStages: KeyStage[] = ksRes.data || [];
 
-    const presentStudentIds = new Set(attendance.map((a) => a.student_id));
-    const total = students.length;
-    const present = presentStudentIds.size;
-    const absent = total - present;
+      const presentStudentIds = new Set(attendance.map((a) => a.student_id));
+      const total = students.length;
+      const present = presentStudentIds.size;
+      const absent = total - present;
 
-    setStats({
-      totalStudents: total,
-      presentToday: present,
-      absentToday: absent,
-      attendanceRate: total > 0 ? Math.round((present / total) * 100) : 0,
-    });
+      setStats({
+        totalStudents: total,
+        presentToday: present,
+        absentToday: absent,
+        attendanceRate: total > 0 ? Math.round((present / total) * 100) : 0,
+      });
 
-    // By Key Stage
-    const ksStats = keyStages.map((ks) => {
-      const ksStudentIds = students.filter((s) => s.grades?.key_stage_id === ks.id);
-      const ksPresent = ksStudentIds.filter((s) => presentStudentIds.has(s.id)).length;
-      return { name: ks.name, total: ksStudentIds.length, present: ksPresent };
-    });
-    setByKeyStage(ksStats);
+      const ksStats = keyStages.map((ks) => {
+        const ksStudentIds = students.filter((s) => s.grades?.key_stage_id === ks.id);
+        const ksPresent = ksStudentIds.filter((s) => presentStudentIds.has(s.id)).length;
+        return { name: ks.name, total: ksStudentIds.length, present: ksPresent };
+      });
+      setByKeyStage(ksStats);
 
-    // By Grade
-    const grStats = grades.map((g) => {
-      const grStudentIds = students.filter((s) => s.grade_id === g.id);
-      const grPresent = grStudentIds.filter((s) => presentStudentIds.has(s.id)).length;
-      return { name: g.name, total: grStudentIds.length, present: grPresent };
-    });
-    setByGrade(grStats);
+      const grStats = grades.map((g) => {
+        const grStudentIds = students.filter((s) => s.grade_id === g.id);
+        const grPresent = grStudentIds.filter((s) => presentStudentIds.has(s.id)).length;
+        return { name: g.name, total: grStudentIds.length, present: grPresent };
+      });
+      setByGrade(grStats);
 
-    // Recent records
-    const { data: recent } = await supabase
-      .from('attendance_with_details')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(10);
-    if (recent) setRecentRecords(recent);
-
-    setLoading(false);
+      const { data: recent } = await supabase
+        .from('attendance_with_details')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (recent) setRecentRecords(recent);
+    } finally {
+      setLoading(false);
+    }
   }, [today]);
 
   useEffect(() => { load(); }, [load]);

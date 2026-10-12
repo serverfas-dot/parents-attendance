@@ -20,15 +20,18 @@ export default function Reports() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
 
   const load = useCallback(async () => {
-    const [ksRes, grRes, stRes] = await Promise.all([
+    try {
+      const [ksRes, grRes, stRes] = await Promise.all([
       supabase.from('key_stages').select('*').order('name'),
       supabase.from('grades').select('*, key_stages(*)').order('name'),
       supabase.from('students').select('*, grades(*, key_stages(*))').order('name'),
     ]);
     setKeyStages(ksRes.data || []);
     setGrades(grRes.data || []);
-    setStudents(stRes.data || []);
-    setLoading(false);
+      setStudents(stRes.data || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);

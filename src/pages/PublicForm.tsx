@@ -12,6 +12,7 @@ export default function PublicForm() {
   const [formSettings, setFormSettings] = useState<FormSettings | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [selectedGradeId, setSelectedGradeId] = useState('');
@@ -30,26 +31,33 @@ export default function PublicForm() {
   });
 
   const loadData = useCallback(async () => {
-    const [grRes, stRes, paRes, fsRes, ssRes] = await Promise.all([
-      supabase.from('grades').select('*, key_stages(*)').order('name'),
-      supabase.from('students').select('*').order('name'),
-      supabase.from('parents').select('*'),
-      supabase.from('form_settings').select('*').maybeSingle(),
-      supabase.from('sessions').select('*').order('created_at', { ascending: false }),
-    ]);
+    try {
+      const [grRes, stRes, paRes, fsRes, ssRes] = await Promise.all([
+        supabase.from('grades').select('*, key_stages(*)').order('name'),
+        supabase.from('students').select('*').order('name'),
+        supabase.from('parents').select('*'),
+        supabase.from('form_settings').select('*').maybeSingle(),
+        supabase.from('sessions').select('*').order('created_at', { ascending: false }),
+      ]);
 
-    if (grRes.data) setGrades(grRes.data);
-    if (stRes.data) setStudents(stRes.data);
-    if (paRes.data) setAllParents(paRes.data);
-    if (fsRes.data) {
-      setFormSettings(fsRes.data);
-      setSelectedSessionId(fsRes.data.session_id);
+      if (grRes.error || stRes.error || paRes.error || fsRes.error || ssRes.error) {
+        throw new Error('Attendance form data could not be loaded.');
+      }
+      setGrades(grRes.data || []);
+      setStudents(stRes.data || []);
+      setAllParents(paRes.data || []);
+      if (fsRes.data) {
+        setFormSettings(fsRes.data);
+        setSelectedSessionId(fsRes.data.session_id);
+      }
+      setSessions(ssRes.data || []);
+      if (!fsRes.data?.session_id && ssRes.data?.[0]) setSelectedSessionId(ssRes.data[0].id);
+      setLoadError('');
+    } catch {
+      setLoadError('The attendance form could not connect to the database.');
+    } finally {
+      setLoading(false);
     }
-    if (ssRes.data) {
-      setSessions(ssRes.data);
-      if (!fsRes.data?.session_id && ssRes.data[0]) setSelectedSessionId(ssRes.data[0].id);
-    }
-    setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -176,6 +184,18 @@ export default function PublicForm() {
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           <p className="text-sm text-slate-500">Loading attendance form…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-2xl bg-white border border-slate-100 shadow-xl p-8 text-center">
+          <h1 className="text-xl font-semibold text-slate-800">Attendance form unavailable</h1>
+          <p className="text-sm text-slate-500 mt-2">{loadError}</p>
+          <button onClick={() => { setLoading(true); loadData(); }} className="mt-6 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors">Try again</button>
         </div>
       </div>
     );
